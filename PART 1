@@ -1,0 +1,87 @@
+index.js
+
+const Discord = require('discord.js');
+const client = new Discord.Client();
+const keepAlive = require(`./server.js`);
+const prefix = process.env.PREFIX;
+const got = require(`got`);
+const botsettings = require('./botsettings.json');
+
+
+const bot = new Discord.Client({disableEveryone: true});
+
+require("./util/eventHandler")(bot)
+
+const fs = require("fs");
+bot.commands = new Discord.Collection();
+bot.aliases = new Discord.Collection();
+
+fs.readdir("./commands/", (err, files) => {
+
+    if(err) console.log(err)
+
+    let jsfile = files.filter(f => f.split(".").pop() === "js") 
+    if(jsfile.length <= 0) {
+         return console.log("[LOGS] Couldn't Find Commands!");
+    }
+
+    jsfile.forEach((f, i) => {
+        let pull = require(`./commands/${f}`);
+        bot.commands.set(pull.config.name, pull);  
+        pull.config.aliases.forEach(alias => {
+            bot.aliases.set(alias, pull.config.name)
+        });
+    });
+});
+
+bot.on("message", async message => {
+    if(message.author.bot || message.channel.type === "dm") return;
+
+    let prefix = botsettings.prefix;
+    let messageArray = message.content.split(" ");
+    let cmd = messageArray[0];
+    let args = message.content.substring(message.content.indexOf(' ')+1);
+
+    if(!message.content.startsWith(prefix)) return;
+    let commandfile = bot.commands.get(cmd.slice(prefix.length)) || bot.commands.get(bot.aliases.get(cmd.slice(prefix.length)))
+    if(commandfile) commandfile.run(bot,message,args)
+})
+
+keepAlive();
+bot.login(botsettings.token);
+
+
+server.js
+
+const express = require('express');
+const server = express();
+
+server.all('/', (req, res)=>{
+       res.send('axix stats : \nonline')
+})
+function keepAlive(){
+        server.listen(3000, ()=>{console.log("Server is Ready!")
+        })
+}
+module.exports = keepAlive;
+
+util
+eventHandler.js
+const reqEvent = (event) => require(`../events/${event}`)
+
+module.exports = bot => {
+    bot.on("ready", function() {reqEvent("ready") (bot) });
+ }
+ 
+events
+ready.js
+
+const Discord = require("discord.js")
+
+module.exports = bot => { 
+    console.log(`${bot.user.username} is online`)
+    bot.user.setPresence({ activity: { name: '' }, status: 'online' })
+    .catch(console.error);
+}
+
+commands
